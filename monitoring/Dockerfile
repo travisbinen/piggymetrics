@@ -1,5 +1,4 @@
-FROM eclipse-temurin:17-jre
-MAINTAINER Alexander Lukyanchikov <sqshq@sqshq.com>
+FROM eclipse-temurin:17-jre-alpine
 
 ADD ./target/monitoring.jar /app/
 CMD ["java", "-Xmx200m", "-jar", "/app/monitoring.jar"]

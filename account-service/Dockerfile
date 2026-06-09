@@ -1,5 +1,4 @@
-FROM eclipse-temurin:17-jre
-MAINTAINER Alexander Lukyanchikov <sqshq@sqshq.com>
+FROM eclipse-temurin:17-jre-alpine
 
 ADD ./target/account-service.jar /app/
 CMD ["java", "-Xmx200m", "-jar", "/app/account-service.jar"]
