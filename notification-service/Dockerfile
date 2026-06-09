@@ -1,5 +1,4 @@
-FROM java:8-jre
-MAINTAINER Alexander Lukyanchikov <sqshq@sqshq.com>
+FROM eclipse-temurin:17-jre-alpine
 
 ADD ./target/notification-service.jar /app/
 CMD ["java", "-Xmx200m", "-jar", "/app/notification-service.jar"]
