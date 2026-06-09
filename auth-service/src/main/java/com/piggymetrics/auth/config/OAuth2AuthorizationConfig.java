@@ -1,82 +1,108 @@
 package com.piggymetrics.auth.config;
 
-import com.piggymetrics.auth.service.security.MongoUserDetailsService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.UUID;
+
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
+
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
-import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
-import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
-import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
-import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
-import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
-import org.springframework.security.oauth2.provider.token.TokenStore;
-import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * @author cdov
- */
 @Configuration
-@EnableAuthorizationServer
-public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdapter {
+public class OAuth2AuthorizationConfig {
 
-    private TokenStore tokenStore = new InMemoryTokenStore();
-    private final String NOOP_PASSWORD_ENCODE = "{noop}";
+	@Bean
+	@Order(1)
+	public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+		OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
+		return http.formLogin(Customizer.withDefaults()).build();
+	}
 
-    @Autowired
-    @Qualifier("authenticationManagerBean")
-    private AuthenticationManager authenticationManager;
+	@Bean
+	public RegisteredClientRepository registeredClientRepository() {
+		RegisteredClient browserClient = RegisteredClient.withId(UUID.randomUUID().toString())
+				.clientId("browser")
+				.clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+				.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+				.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+				.redirectUri("http://localhost:4000/login/oauth2/code/browser")
+				.scope("ui")
+				.build();
 
-    @Autowired
-    private MongoUserDetailsService userDetailsService;
+		RegisteredClient accountService = RegisteredClient.withId(UUID.randomUUID().toString())
+				.clientId("account-service")
+				.clientSecret("{noop}account-service-secret")
+				.clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+				.authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+				.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+				.scope("server")
+				.build();
 
-    @Autowired
-    private Environment env;
+		RegisteredClient statisticsService = RegisteredClient.withId(UUID.randomUUID().toString())
+				.clientId("statistics-service")
+				.clientSecret("{noop}statistics-service-secret")
+				.clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+				.authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+				.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+				.scope("server")
+				.build();
 
-    @Override
-    public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+		RegisteredClient notificationService = RegisteredClient.withId(UUID.randomUUID().toString())
+				.clientId("notification-service")
+				.clientSecret("{noop}notification-service-secret")
+				.clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+				.authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+				.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+				.scope("server")
+				.build();
 
-        // TODO persist clients details
+		return new InMemoryRegisteredClientRepository(
+				browserClient, accountService, statisticsService, notificationService);
+	}
 
-        // @formatter:off
-        clients.inMemory()
-                .withClient("browser")
-                .authorizedGrantTypes("refresh_token", "password")
-                .scopes("ui")
-                .and()
-                .withClient("account-service")
-                .secret(env.getProperty("ACCOUNT_SERVICE_PASSWORD"))
-                .authorizedGrantTypes("client_credentials", "refresh_token")
-                .scopes("server")
-                .and()
-                .withClient("statistics-service")
-                .secret(env.getProperty("STATISTICS_SERVICE_PASSWORD"))
-                .authorizedGrantTypes("client_credentials", "refresh_token")
-                .scopes("server")
-                .and()
-                .withClient("notification-service")
-                .secret(env.getProperty("NOTIFICATION_SERVICE_PASSWORD"))
-                .authorizedGrantTypes("client_credentials", "refresh_token")
-                .scopes("server");
-        // @formatter:on
-    }
+	@Bean
+	public AuthorizationServerSettings authorizationServerSettings() {
+		return AuthorizationServerSettings.builder().build();
+	}
 
-    @Override
-    public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
-        endpoints
-                .tokenStore(tokenStore)
-                .authenticationManager(authenticationManager)
-                .userDetailsService(userDetailsService);
-    }
+	@Bean
+	public JWKSource<SecurityContext> jwkSource() {
+		KeyPair keyPair = generateRsaKey();
+		RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+		RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
+		RSAKey rsaKey = new RSAKey.Builder(publicKey)
+				.privateKey(privateKey)
+				.keyID(UUID.randomUUID().toString())
+				.build();
+		JWKSet jwkSet = new JWKSet(rsaKey);
+		return new ImmutableJWKSet<>(jwkSet);
+	}
 
-    @Override
-    public void configure(AuthorizationServerSecurityConfigurer oauthServer) throws Exception {
-        oauthServer
-                .tokenKeyAccess("permitAll()")
-                .checkTokenAccess("isAuthenticated()")
-                .passwordEncoder(NoOpPasswordEncoder.getInstance());
-    }
-
+	private static KeyPair generateRsaKey() {
+		try {
+			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+			keyPairGenerator.initialize(2048);
+			return keyPairGenerator.generateKeyPair();
+		} catch (Exception ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
 }

@@ -2,13 +2,30 @@ logging:
   level:
     org.springframework.security: INFO
 
-hystrix:
-  command:
-    default:
-      execution:
-        isolation:
-          thread:
-            timeoutInMilliseconds: 10000
+spring:
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+  rabbitmq:
+    host: rabbitmq
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-service:5000
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
 
 eureka:
   instance:
@@ -17,11 +34,11 @@ eureka:
     serviceUrl:
       defaultZone: http://registry:8761/eureka/
 
-security:
-  oauth2:
-    resource:
-      user-info-uri: http://auth-service:5000/uaa/users/current
-
-spring:
-  rabbitmq:
-    host: rabbitmq
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
