@@ -1,12 +1,15 @@
 package com.piggymetrics.account;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import com.piggymetrics.account.config.TestSecurityConfig;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.context.annotation.Import;
 
-@RunWith(SpringRunner.class)
+
+@ExtendWith(org.springframework.test.context.junit.jupiter.SpringExtension.class)
 @SpringBootTest
+@Import(TestSecurityConfig.class)
 public class AccountServiceApplicationTests {
 
 	@Test
