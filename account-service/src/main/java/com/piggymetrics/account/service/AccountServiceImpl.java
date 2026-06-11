@@ -30,18 +30,12 @@ public class AccountServiceImpl implements AccountService {
 	@Autowired
 	private AccountRepository repository;
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public Account findByName(String accountName) {
 		Assert.hasLength(accountName, "accountName must not be empty");
 		return repository.findByName(accountName);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public Account create(User user) {
 
@@ -69,9 +63,6 @@ public class AccountServiceImpl implements AccountService {
 		return account;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
 	public void saveChanges(String name, Account update) {
 
