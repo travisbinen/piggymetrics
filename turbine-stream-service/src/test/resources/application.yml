@@ -4,16 +4,6 @@ spring:
   cloud:
     config:
       enabled: false
-  data:
-    mongodb:
-      database: piggymetrics
-      port: 0
-
-de:
-  flapdoodle:
-    mongodb:
-      embedded:
-        version: 6.0.9
 
 eureka:
   client:

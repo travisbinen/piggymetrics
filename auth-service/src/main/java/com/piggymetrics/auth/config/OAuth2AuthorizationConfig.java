@@ -61,7 +61,7 @@ public class OAuth2AuthorizationConfig {
 
         RegisteredClient accountService = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("account-service")
-                .clientSecret(passwordEncoder.encode(env.getProperty("ACCOUNT_SERVICE_PASSWORD")))
+                .clientSecret(passwordEncoder.encode(env.getProperty("ACCOUNT_SERVICE_PASSWORD", "default")))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
@@ -70,7 +70,7 @@ public class OAuth2AuthorizationConfig {
 
         RegisteredClient statisticsService = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("statistics-service")
-                .clientSecret(passwordEncoder.encode(env.getProperty("STATISTICS_SERVICE_PASSWORD")))
+                .clientSecret(passwordEncoder.encode(env.getProperty("STATISTICS_SERVICE_PASSWORD", "default")))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
@@ -79,7 +79,7 @@ public class OAuth2AuthorizationConfig {
 
         RegisteredClient notificationService = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("notification-service")
-                .clientSecret(passwordEncoder.encode(env.getProperty("NOTIFICATION_SERVICE_PASSWORD")))
+                .clientSecret(passwordEncoder.encode(env.getProperty("NOTIFICATION_SERVICE_PASSWORD", "default")))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)

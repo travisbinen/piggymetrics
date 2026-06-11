@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,8 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(org.springframework.test.context.junit.jupiter.SpringExtension.class)
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class StatisticsControllerTest {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
