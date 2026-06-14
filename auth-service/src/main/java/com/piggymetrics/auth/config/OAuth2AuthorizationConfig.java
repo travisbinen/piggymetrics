@@ -1,9 +1,15 @@
 package com.piggymetrics.auth.config;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.text.ParseException;
 import java.util.UUID;
 
 import com.nimbusds.jose.jwk.JWKSet;
@@ -12,6 +18,8 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +39,8 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class OAuth2AuthorizationConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(OAuth2AuthorizationConfig.class);
 
     @Autowired
     private Environment env;
@@ -87,22 +97,46 @@ public class OAuth2AuthorizationConfig {
 
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
-        KeyPair keyPair = generateRsaKey();
-        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-        RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
-        RSAKey rsaKey = new RSAKey.Builder(publicKey)
-                .privateKey(privateKey)
-                .keyID(UUID.randomUUID().toString())
-                .build();
+        String jwkPath = env.getProperty("jwt.jwk.path", "auth-jwk.json");
+        RSAKey rsaKey = loadOrGenerateRsaKey(jwkPath);
         JWKSet jwkSet = new JWKSet(rsaKey);
         return new ImmutableJWKSet<>(jwkSet);
     }
 
-    private static KeyPair generateRsaKey() {
+    private RSAKey loadOrGenerateRsaKey(String jwkPath) {
+        Path path = Paths.get(jwkPath);
+        if (Files.exists(path)) {
+            try {
+                String json = Files.readString(path, StandardCharsets.UTF_8);
+                JWKSet jwkSet = JWKSet.parse(json);
+                RSAKey rsaKey = (RSAKey) jwkSet.getKeys().get(0);
+                log.info("Loaded existing RSA key from {}", path);
+                return rsaKey;
+            } catch (IOException | ParseException ex) {
+                log.warn("Failed to load JWK from {}, generating new key", path, ex);
+            }
+        }
+
+        RSAKey rsaKey = generateNewRsaKey();
+        try {
+            JWKSet jwkSet = new JWKSet(rsaKey);
+            Files.writeString(path, jwkSet.toString(false), StandardCharsets.UTF_8);
+            log.info("Generated and saved new RSA key to {}", path);
+        } catch (IOException ex) {
+            log.warn("Failed to save JWK to {} — key will not persist across restarts", path, ex);
+        }
+        return rsaKey;
+    }
+
+    private static RSAKey generateNewRsaKey() {
         try {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPairGenerator.initialize(2048);
-            return keyPairGenerator.generateKeyPair();
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+            return new RSAKey.Builder((RSAPublicKey) keyPair.getPublic())
+                    .privateKey((RSAPrivateKey) keyPair.getPrivate())
+                    .keyID("auth-server")
+                    .build();
         } catch (Exception ex) {
             throw new IllegalStateException(ex);
         }
