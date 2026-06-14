@@ -24,6 +24,18 @@ spring:
       password: ${MONGODB_PASSWORD}
       database: piggymetrics
       port: 27017
+  security:
+    oauth2:
+      client:
+        registration:
+          notification-service:
+            client-id: notification-service
+            client-secret: ${NOTIFICATION_SERVICE_PASSWORD}
+            authorization-grant-type: client_credentials
+            scope: server
+        provider:
+          notification-service:
+            token-uri: http://auth-service:5000/uaa/oauth2/token
   mail:
     host: smtp.gmail.com
     port: 465

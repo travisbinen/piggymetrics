@@ -1,20 +1,20 @@
 package com.piggymetrics.statistics.repository.converter;
 
+import com.mongodb.DBObject;
 import com.piggymetrics.statistics.domain.timeseries.DataPointId;
-import org.bson.Document;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
 @Component
-public class DataPointIdReaderConverter implements Converter<Document, DataPointId> {
+public class DataPointIdReaderConverter implements Converter<DBObject, DataPointId> {
 
 	@Override
-	public DataPointId convert(Document document) {
+	public DataPointId convert(DBObject object) {
 
-		Date date = document.getDate("date");
-		String account = document.getString("account");
+		Date date = (Date) object.get("date");
+		String account = (String) object.get("account");
 
 		return new DataPointId(account, date);
 	}
